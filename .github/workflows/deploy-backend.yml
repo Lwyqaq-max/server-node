@@ -1,0 +1,41 @@
+name: Deploy Node Backend
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Build Docker Image
+        run: docker build -t node-backend .
+
+      - name: Export Image
+        run: docker save node-backend -o backend.tar
+
+      - name: Upload to Server (password login)
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          source: backend.tar
+          target: /data/deploy/
+
+      - name: Restart backend container
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            docker load -i /data/deploy/backend.tar
+            docker rm -f node-backend || true
+            docker run -d -p 3000:3000 --name node-backend node-backend
