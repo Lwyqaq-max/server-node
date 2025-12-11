@@ -1,10 +1,13 @@
-FROM node:18-slim
+FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+# 安装 pnpm
+RUN npm install -g pnpm
 
-RUN npm install --only=production
+COPY package.json pnpm-lock.yaml ./
+
+RUN pnpm install --prod
 
 COPY . .
 
